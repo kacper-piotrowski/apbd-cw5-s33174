@@ -13,6 +13,7 @@ namespace LegacyRenewalApp
         private readonly IEnumerable<IPaymentFeeStrategy> _paymentFeeStrategies;
         private readonly IEnumerable<ITaxStrategy> _taxStrategies;
         private readonly IEnumerable<ISupportFeeStrategy> _supportFeeStrategies;
+        private readonly LoyaltyPointCalculator _loyaltyPointCalculator;
         private readonly ICustomerRepository _customerRepository;
         private readonly ISubscriptionPlanRepository _subscriptionPlanRepository;
         private readonly IInvoiceRepository _invoiceRepository;
@@ -22,6 +23,7 @@ namespace LegacyRenewalApp
             IEnumerable<IPaymentFeeStrategy> paymentFeeStrategies,
             IEnumerable<ITaxStrategy> taxStrategies,
             IEnumerable<ISupportFeeStrategy> supportFeeStrategies,
+            LoyaltyPointCalculator loyaltyPointCalculator,
             ICustomerRepository customerRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
             IInvoiceRepository invoiceRepository,
@@ -31,6 +33,7 @@ namespace LegacyRenewalApp
             _paymentFeeStrategies = paymentFeeStrategies;
             _taxStrategies = taxStrategies;
             _supportFeeStrategies = supportFeeStrategies;
+            _loyaltyPointCalculator = loyaltyPointCalculator;
             _customerRepository  =  customerRepository;
             _subscriptionPlanRepository = subscriptionPlanRepository;
             _invoiceRepository = invoiceRepository;
@@ -71,6 +74,7 @@ namespace LegacyRenewalApp
                 new ProSupport(),
                 new StartSupport()
             };
+            _loyaltyPointCalculator = new LoyaltyPointCalculator();
             _customerRepository = new CustomerRepository();
             _subscriptionPlanRepository = new SubscriptionPlanRepository();
             _invoiceRepository = new LegacyBillingController();
@@ -132,11 +136,14 @@ namespace LegacyRenewalApp
                 }
             }
 
-            if (useLoyaltyPoints && customer.LoyaltyPoints > 0)
+            if (useLoyaltyPoints)
             {
-                int pointsToUse = customer.LoyaltyPoints > 200 ? 200 : customer.LoyaltyPoints;
-                discountAmount += pointsToUse;
-                notes += $"loyalty points used: {pointsToUse}; ";
+                int pointsToUse = _loyaltyPointCalculator.CalculatePointsToUse(customer.LoyaltyPoints);
+                if (pointsToUse > 0)
+                {
+                    discountAmount += pointsToUse;
+                    notes += $"loyalty points used: {pointsToUse}; ";
+                }
             }
 
             decimal subtotalAfterDiscount = baseAmount - discountAmount;
