@@ -135,7 +135,6 @@ namespace LegacyRenewalApp
                 {
                     discountAmount += strategy.CalculateDiscount(discountAmount,baseAmount);
                     notes += strategy.DiscountNote();
-                    break;
                 }
             }
 
