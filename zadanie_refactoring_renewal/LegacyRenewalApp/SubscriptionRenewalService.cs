@@ -14,6 +14,22 @@ namespace LegacyRenewalApp
             _strategies = strategies;
         }
 
+        public SubscriptionRenewalService()
+        {
+            _strategies = new List<IDiscountStrategy>
+            {
+                new BasicLoyaltyDiscount(),
+                new EducationDiscount(),
+                new GoldDiscount(),
+                new LargeTeamDiscount(),
+                new LongTermLoyaltyDiscount(),
+                new MediumTeamDiscount(),
+                new PlatinumDiscount(),
+                new SilverDiscount(),
+                new SmallTeamDiscount()
+            };
+        }
+
         public RenewalInvoice CreateRenewalInvoice(
             int customerId,
             string planCode,
