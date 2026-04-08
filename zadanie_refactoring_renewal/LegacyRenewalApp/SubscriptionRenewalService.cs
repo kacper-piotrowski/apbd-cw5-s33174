@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using LegacyRenewalApp.Discounts;
 using LegacyRenewalApp.Payments;
 using LegacyRenewalApp.Repositories;
+using LegacyRenewalApp.Supports;
 
 namespace LegacyRenewalApp
 {
@@ -11,6 +12,7 @@ namespace LegacyRenewalApp
         private readonly IEnumerable<IDiscountStrategy> _discountStrategies;
         private readonly IEnumerable<IPaymentFeeStrategy> _paymentFeeStrategies;
         private readonly IEnumerable<ITaxStrategy> _taxStrategies;
+        private readonly IEnumerable<ISupportFeeStrategy> _supportFeeStrategies;
         private readonly ICustomerRepository _customerRepository;
         private readonly ISubscriptionPlanRepository _subscriptionPlanRepository;
         private readonly IInvoiceRepository _invoiceRepository;
@@ -19,6 +21,7 @@ namespace LegacyRenewalApp
         public SubscriptionRenewalService(IEnumerable<IDiscountStrategy> discountStrategies,
             IEnumerable<IPaymentFeeStrategy> paymentFeeStrategies,
             IEnumerable<ITaxStrategy> taxStrategies,
+            IEnumerable<ISupportFeeStrategy> supportFeeStrategies,
             ICustomerRepository customerRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
             IInvoiceRepository invoiceRepository,
@@ -27,6 +30,7 @@ namespace LegacyRenewalApp
             _discountStrategies = discountStrategies;
             _paymentFeeStrategies = paymentFeeStrategies;
             _taxStrategies = taxStrategies;
+            _supportFeeStrategies = supportFeeStrategies;
             _customerRepository  =  customerRepository;
             _subscriptionPlanRepository = subscriptionPlanRepository;
             _invoiceRepository = invoiceRepository;
@@ -60,6 +64,12 @@ namespace LegacyRenewalApp
                 new GermanyTax(),
                 new NorwayTax(),
                 new PolandTax()
+            };
+            _supportFeeStrategies = new List<ISupportFeeStrategy>
+            {
+                new EnterpriseSupport(),
+                new ProSupport(),
+                new StartSupport()
             };
             _customerRepository = new CustomerRepository();
             _subscriptionPlanRepository = new SubscriptionPlanRepository();
@@ -139,17 +149,13 @@ namespace LegacyRenewalApp
             decimal supportFee = 0m;
             if (includePremiumSupport)
             {
-                if (normalizedPlanCode == "START")
+                foreach (var strategy in _supportFeeStrategies)
                 {
-                    supportFee = 250m;
-                }
-                else if (normalizedPlanCode == "PRO")
-                {
-                    supportFee = 400m;
-                }
-                else if (normalizedPlanCode == "ENTERPRISE")
-                {
-                    supportFee = 700m;
+                    if (strategy.CheckPlanCode(normalizedPlanCode))
+                    {
+                        supportFee = strategy.GetSupportFee();
+                        break;
+                    }
                 }
 
                 notes += "premium support included; ";
