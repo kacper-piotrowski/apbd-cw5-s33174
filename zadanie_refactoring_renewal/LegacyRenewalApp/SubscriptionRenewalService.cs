@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LegacyRenewalApp.Discounts;
 using LegacyRenewalApp.Repositories;
 
@@ -6,6 +7,13 @@ namespace LegacyRenewalApp
 {
     public class SubscriptionRenewalService
     {
+        private readonly IEnumerable<IDiscountStrategy> _strategies;
+
+        public SubscriptionRenewalService(IEnumerable<IDiscountStrategy> strategies)
+        {
+            _strategies = strategies;
+        }
+
         public RenewalInvoice CreateRenewalInvoice(
             int customerId,
             string planCode,
@@ -42,7 +50,7 @@ namespace LegacyRenewalApp
 
             var customer = customerRepository.GetById(customerId);
             var plan = planRepository.GetByCode(normalizedPlanCode);
-
+            
             if (!customer.IsActive)
             {
                 throw new InvalidOperationException("Inactive customers cannot renew subscriptions");
@@ -51,53 +59,17 @@ namespace LegacyRenewalApp
             decimal baseAmount = (plan.MonthlyPricePerSeat * seatCount * 12m) + plan.SetupFee;
             decimal discountAmount = 0m;
             string notes = string.Empty;
+            
+            var checkDiscountValues = new RenewalDiscountValues(customer, plan, seatCount, baseAmount);
 
-            if (customer.Segment == "Silver")
+            foreach (var strategy in _strategies)
             {
-                discountAmount += baseAmount * 0.05m;
-                notes += "silver discount; ";
-            }
-            else if (customer.Segment == "Gold")
-            {
-                discountAmount += baseAmount * 0.10m;
-                notes += "gold discount; ";
-            }
-            else if (customer.Segment == "Platinum")
-            {
-                discountAmount += baseAmount * 0.15m;
-                notes += "platinum discount; ";
-            }
-            else if (customer.Segment == "Education" && plan.IsEducationEligible)
-            {
-                discountAmount += baseAmount * 0.20m;
-                notes += "education discount; ";
-            }
-
-            if (customer.YearsWithCompany >= 5)
-            {
-                discountAmount += baseAmount * 0.07m;
-                notes += "long-term loyalty discount; ";
-            }
-            else if (customer.YearsWithCompany >= 2)
-            {
-                discountAmount += baseAmount * 0.03m;
-                notes += "basic loyalty discount; ";
-            }
-
-            if (seatCount >= 50)
-            {
-                discountAmount += baseAmount * 0.12m;
-                notes += "large team discount; ";
-            }
-            else if (seatCount >= 20)
-            {
-                discountAmount += baseAmount * 0.08m;
-                notes += "medium team discount; ";
-            }
-            else if (seatCount >= 10)
-            {
-                discountAmount += baseAmount * 0.04m;
-                notes += "small team discount; ";
+                if (strategy.CheckDiscount(checkDiscountValues))
+                {
+                    discountAmount += strategy.CalculateDiscount(discountAmount,baseAmount);
+                    notes += strategy.DiscountNote();
+                    break;
+                }
             }
 
             if (useLoyaltyPoints && customer.LoyaltyPoints > 0)
