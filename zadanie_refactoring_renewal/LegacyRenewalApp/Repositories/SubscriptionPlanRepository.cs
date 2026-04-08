@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace LegacyRenewalApp.Repositories
 {
-    public class SubscriptionPlanRepository
+    public class SubscriptionPlanRepository : ISubscriptionPlanRepository
     {
         public static readonly Dictionary<string, SubscriptionPlan> Database = new Dictionary<string, SubscriptionPlan>
         {
