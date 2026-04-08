@@ -162,6 +162,7 @@ namespace LegacyRenewalApp
             }
 
             decimal paymentFee = 0m;
+            bool paymentMethodFound = false;
             decimal feeAmount = subtotalAfterDiscount + supportFee;
             foreach (var strategy in _paymentFeeStrategies)
             {
@@ -169,8 +170,14 @@ namespace LegacyRenewalApp
                 {
                     paymentFee += strategy.CalculateFee(feeAmount);
                     notes += strategy.FeeNote();
+                    paymentMethodFound = true;
                     break;
                 }
+            }
+
+            if (!paymentMethodFound)
+            {
+                throw new ArgumentException("Unsupported payment method");
             }
 
             decimal taxRate = 0.20m;
