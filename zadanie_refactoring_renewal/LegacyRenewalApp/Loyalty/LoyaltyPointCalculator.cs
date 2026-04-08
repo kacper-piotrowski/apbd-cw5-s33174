@@ -1,4 +1,4 @@
-﻿namespace LegacyRenewalApp;
+﻿namespace LegacyRenewalApp.Loyalty;
 
 public class LoyaltyPointCalculator
 {

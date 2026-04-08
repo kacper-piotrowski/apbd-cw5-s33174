@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using LegacyRenewalApp.Discounts;
+using LegacyRenewalApp.Legacy;
+using LegacyRenewalApp.Models;
 using LegacyRenewalApp.Payments;
 using LegacyRenewalApp.Repositories;
 using LegacyRenewalApp.Supports;
+using LegacyRenewalApp.Loyalty;
 
 namespace LegacyRenewalApp
 {

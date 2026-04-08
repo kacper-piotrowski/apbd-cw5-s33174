@@ -1,4 +1,6 @@
-﻿namespace LegacyRenewalApp;
+﻿using LegacyRenewalApp.Models;
+
+namespace LegacyRenewalApp.Repositories;
 
 public interface ICustomerRepository
 {

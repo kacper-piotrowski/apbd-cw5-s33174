@@ -1,6 +1,7 @@
-﻿using LegacyRenewalApp.Discounts;
+﻿using LegacyRenewalApp.Models;
+using LegacyRenewalApp.Repositories;
 
-namespace LegacyRenewalApp;
+namespace LegacyRenewalApp.Legacy;
 
 public class LegacyBillingController : IEmailSender, IInvoiceRepository
 {

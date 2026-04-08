@@ -1,4 +1,6 @@
-﻿namespace LegacyRenewalApp.Discounts;
+﻿using LegacyRenewalApp.Models;
+
+namespace LegacyRenewalApp.Discounts;
 
 public class LargeTeamDiscount : IDiscountStrategy
 {
