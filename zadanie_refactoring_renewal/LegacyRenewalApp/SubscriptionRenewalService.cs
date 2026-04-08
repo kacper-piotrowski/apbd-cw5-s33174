@@ -1,21 +1,24 @@
 using System;
 using System.Collections.Generic;
 using LegacyRenewalApp.Discounts;
+using LegacyRenewalApp.Payments;
 using LegacyRenewalApp.Repositories;
 
 namespace LegacyRenewalApp
 {
     public class SubscriptionRenewalService
     {
-        private readonly IEnumerable<IDiscountStrategy> _strategies;
+        private readonly IEnumerable<IDiscountStrategy> _discountStrategies;
+        private readonly IEnumerable<IPaymentFeeStrategy> _paymentFeeStrategies;
         private readonly ICustomerRepository _customerRepository;
         private readonly ISubscriptionPlanRepository _subscriptionPlanRepository;
         private readonly IInvoiceRepository _invoiceRepository;
         private readonly IEmailSender _emailSender;
 
-        public SubscriptionRenewalService(IEnumerable<IDiscountStrategy> strategies,  ICustomerRepository customerRepository,  ISubscriptionPlanRepository subscriptionPlanRepository,  IInvoiceRepository invoiceRepository, IEmailSender emailSender)
+        public SubscriptionRenewalService(IEnumerable<IDiscountStrategy> discountStrategies,IEnumerable<IPaymentFeeStrategy> paymentFeeStrategies,  ICustomerRepository customerRepository,  ISubscriptionPlanRepository subscriptionPlanRepository,  IInvoiceRepository invoiceRepository, IEmailSender emailSender)
         {
-            _strategies = strategies;
+            _discountStrategies = discountStrategies;
+            _paymentFeeStrategies = paymentFeeStrategies;
             _customerRepository  =  customerRepository;
             _subscriptionPlanRepository = subscriptionPlanRepository;
             _invoiceRepository = invoiceRepository;
@@ -24,7 +27,7 @@ namespace LegacyRenewalApp
 
         public SubscriptionRenewalService()
         {
-            _strategies = new List<IDiscountStrategy>
+            _discountStrategies = new List<IDiscountStrategy>
             {
                 new BasicLoyaltyDiscount(),
                 new EducationDiscount(),
@@ -35,6 +38,13 @@ namespace LegacyRenewalApp
                 new PlatinumDiscount(),
                 new SilverDiscount(),
                 new SmallTeamDiscount()
+            };
+            _paymentFeeStrategies = new List<IPaymentFeeStrategy>
+            {
+                new BankTransferPayment(),
+                new CardPayment(),
+                new InvoicePayment(),
+                new PaypalPayment()
             };
             _customerRepository = new CustomerRepository();
             _subscriptionPlanRepository = new SubscriptionPlanRepository();
@@ -87,7 +97,7 @@ namespace LegacyRenewalApp
             
             var checkDiscountValues = new RenewalDiscountValues(customer, plan, seatCount, baseAmount);
 
-            foreach (var strategy in _strategies)
+            foreach (var strategy in _discountStrategies)
             {
                 if (strategy.CheckDiscount(checkDiscountValues))
                 {
@@ -131,29 +141,15 @@ namespace LegacyRenewalApp
             }
 
             decimal paymentFee = 0m;
-            if (normalizedPaymentMethod == "CARD")
+            decimal feeAmount = subtotalAfterDiscount + supportFee;
+            foreach (var strategy in _paymentFeeStrategies)
             {
-                paymentFee = (subtotalAfterDiscount + supportFee) * 0.02m;
-                notes += "card payment fee; ";
-            }
-            else if (normalizedPaymentMethod == "BANK_TRANSFER")
-            {
-                paymentFee = (subtotalAfterDiscount + supportFee) * 0.01m;
-                notes += "bank transfer fee; ";
-            }
-            else if (normalizedPaymentMethod == "PAYPAL")
-            {
-                paymentFee = (subtotalAfterDiscount + supportFee) * 0.035m;
-                notes += "paypal fee; ";
-            }
-            else if (normalizedPaymentMethod == "INVOICE")
-            {
-                paymentFee = 0m;
-                notes += "invoice payment; ";
-            }
-            else
-            {
-                throw new ArgumentException("Unsupported payment method");
+                if (strategy.CheckPaymentMethod(normalizedPaymentMethod))
+                {
+                    paymentFee += strategy.CalculateFee(feeAmount);
+                    notes += strategy.FeeNote();
+                    break;
+                }
             }
 
             decimal taxRate = 0.20m;
