@@ -1,4 +1,6 @@
 using System;
+using LegacyRenewalApp.Discounts;
+using LegacyRenewalApp.Repositories;
 
 namespace LegacyRenewalApp
 {

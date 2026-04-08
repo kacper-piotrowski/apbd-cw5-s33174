@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 
-namespace LegacyRenewalApp
+namespace LegacyRenewalApp.Discounts
 {
     /*
      * DO NOT CHANGE THIS FILE AT ALL
