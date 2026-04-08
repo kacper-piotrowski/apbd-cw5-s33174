@@ -10,15 +10,23 @@ namespace LegacyRenewalApp
     {
         private readonly IEnumerable<IDiscountStrategy> _discountStrategies;
         private readonly IEnumerable<IPaymentFeeStrategy> _paymentFeeStrategies;
+        private readonly IEnumerable<ITaxStrategy> _taxStrategies;
         private readonly ICustomerRepository _customerRepository;
         private readonly ISubscriptionPlanRepository _subscriptionPlanRepository;
         private readonly IInvoiceRepository _invoiceRepository;
         private readonly IEmailSender _emailSender;
 
-        public SubscriptionRenewalService(IEnumerable<IDiscountStrategy> discountStrategies,IEnumerable<IPaymentFeeStrategy> paymentFeeStrategies,  ICustomerRepository customerRepository,  ISubscriptionPlanRepository subscriptionPlanRepository,  IInvoiceRepository invoiceRepository, IEmailSender emailSender)
+        public SubscriptionRenewalService(IEnumerable<IDiscountStrategy> discountStrategies,
+            IEnumerable<IPaymentFeeStrategy> paymentFeeStrategies,
+            IEnumerable<ITaxStrategy> taxStrategies,
+            ICustomerRepository customerRepository,
+            ISubscriptionPlanRepository subscriptionPlanRepository,
+            IInvoiceRepository invoiceRepository,
+            IEmailSender emailSender)
         {
             _discountStrategies = discountStrategies;
             _paymentFeeStrategies = paymentFeeStrategies;
+            _taxStrategies = taxStrategies;
             _customerRepository  =  customerRepository;
             _subscriptionPlanRepository = subscriptionPlanRepository;
             _invoiceRepository = invoiceRepository;
@@ -45,6 +53,13 @@ namespace LegacyRenewalApp
                 new CardPayment(),
                 new InvoicePayment(),
                 new PaypalPayment()
+            };
+            _taxStrategies = new List<ITaxStrategy>
+            {
+                new CzechRepublicTax(),
+                new GermanyTax(),
+                new NorwayTax(),
+                new PolandTax()
             };
             _customerRepository = new CustomerRepository();
             _subscriptionPlanRepository = new SubscriptionPlanRepository();
@@ -153,21 +168,13 @@ namespace LegacyRenewalApp
             }
 
             decimal taxRate = 0.20m;
-            if (customer.Country == "Poland")
+            foreach (var strategy in _taxStrategies)
             {
-                taxRate = 0.23m;
-            }
-            else if (customer.Country == "Germany")
-            {
-                taxRate = 0.19m;
-            }
-            else if (customer.Country == "Czech Republic")
-            {
-                taxRate = 0.21m;
-            }
-            else if (customer.Country == "Norway")
-            {
-                taxRate = 0.25m;
+                if (strategy.CheckCountry(customer.Country))
+                {
+                    taxRate = strategy.GetTaxRate();
+                    break;
+                }
             }
 
             decimal taxBase = subtotalAfterDiscount + supportFee + paymentFee;
